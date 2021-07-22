@@ -28,6 +28,8 @@
 #include "llvm/Transforms/AntiHack/Flattening.h"
 #include "llvm/Transforms/AntiHack/SplitBasicBlock.h"
 #include "llvm/Transforms/AntiHack/DynamicBranch.h"
+#include "llvm/Transforms/AntiHack/Substitution.h"
+#include "llvm/Transforms/AntiHack/BogusControlFlow.h"
 #include <fstream>
 
 using namespace llvm;
@@ -64,6 +66,14 @@ namespace {
 
     fp = static_cast<FunctionPass*>(createDynamicBranch(configJson, logFile, homeDir));
     functionPasses.push_back(fp);
+
+
+    // fp = static_cast<FunctionPass*>(createSubstitution(configJson, logFile, homeDir));
+    // functionPasses.push_back(fp);
+
+    fp = static_cast<FunctionPass*>(createBogus(configJson, logFile, homeDir));
+    functionPasses.push_back(fp);
+
     return true;
   }
 

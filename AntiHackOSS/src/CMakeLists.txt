@@ -6,4 +6,5 @@ add_llvm_library( LLVMAntiHack
     SplitBasicBlock.cpp
     CryptoUtils.cpp
     Utils.cpp
+    BogusControlFlow.cpp
 )
