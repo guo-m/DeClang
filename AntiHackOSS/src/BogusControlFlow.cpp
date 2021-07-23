@@ -232,28 +232,28 @@ struct BogusControlFlow : public FunctionPass {
     // Real begining of the pass
     // Loop for the number of time we run the pass on the function
     do {
-      (*logFile) << "bcf: Function " << F.getName()
-                                    << ", before the pass:\n";
+      // (*logFile) << "bcf: Function " << F.getName()
+                                    // << ", before the pass:\n";
       // DEBUG_WITH_TYPE("cfg", F.viewCFG());
       // Put all the function's block in a list
       std::list<BasicBlock *> basicBlocks;
       for (Function::iterator i = F.begin(); i != F.end(); ++i) {
         basicBlocks.push_back(&*i);
       }
-      (*logFile) << "bcf: Iterating on the Function's Basic Blocks\n";
+      // (*logFile) << "bcf: Iterating on the Function's Basic Blocks\n";
 
       while (!basicBlocks.empty()) {
         NumBasicBlocks++;
         // Basic Blocks' selection
         if ((int)llvm::cryptoutils->get_range(100) <= ObfProbRate) {
-          (*logFile) << "bcf: Block " << NumBasicBlocks << " selected. \n";
+          // (*logFile) << "bcf: Block " << NumBasicBlocks << " selected. \n";
           hasBeenModified = true;
           ++NumModifiedBasicBlocks;
           NumAddedBasicBlocks += 3;
           FinalNumBasicBlocks += 3;
           // Add bogus flow to the given Basic Block (see description)
           BasicBlock *basicBlock = basicBlocks.front();
-          // addBogusFlow(basicBlock, F);
+          addBogusFlow(basicBlock, F);
         } else {
           (*logFile)  << "bcf: Block " << NumBasicBlocks
                                         << " not selected.\n";
@@ -266,7 +266,7 @@ struct BogusControlFlow : public FunctionPass {
           ++FinalNumBasicBlocks;
         }
       } // end of while(!basicBlocks.empty())
-      (*logFile) << "bcf: End of function " << F.getName() << "\n";
+      // (*logFile) << "bcf: End of function " << F.getName() << "\n";
       if (hasBeenModified) { // if the function has been modified
         (*logFile) << "bcf: Function " << F.getName()
                                       << ", after the pass: \n";
@@ -299,44 +299,48 @@ struct BogusControlFlow : public FunctionPass {
       i1 = (BasicBlock::iterator)basicBlock->getFirstNonPHIOrDbgOrLifetime();
     Twine *var;
     var = new Twine("originalBB");
+    if(!basicBlock->getTerminator()){
+      return;
+    }
     BasicBlock *originalBB = basicBlock->splitBasicBlock(i1, *var);
-    (*logFile) << "bcf: First and original basic blocks: ok\n";
-
+    // (*logFile) << "bcf: First and original basic blocks: ok\n";
+    
     // Creating the altered basic block on which the first basicBlock will jump
     Twine *var3 = new Twine("alteredBB");
     BasicBlock *alteredBB = createAlteredBasicBlock(originalBB, *var3, &F);
-    (*logFile) << "bcf: Altered basic block: ok\n";
+    // (*logFile) << "bcf: Altered basic block: ok\n";
 
+    
     // Now that all the blocks are created,
     // we modify the terminators to adjust the control flow.
 
     alteredBB->getTerminator()->eraseFromParent();
     basicBlock->getTerminator()->eraseFromParent();
-    (*logFile) << "bcf: Terminator removed from the altered"
-                                  << " and first basic blocks\n";
+    // (*logFile) << "bcf: Terminator removed from the altered"
+                                  // << " and first basic blocks\n";
 
     // Preparing a condition..
     // For now, the condition is an always true comparaison between 2 float
     // This will be complicated after the pass (in doFinalization())
     Value *LHS = ConstantFP::get(Type::getFloatTy(F.getContext()), 1.0);
     Value *RHS = ConstantFP::get(Type::getFloatTy(F.getContext()), 1.0);
-    (*logFile) << "bcf: Value LHS and RHS created\n";
+    // (*logFile) << "bcf: Value LHS and RHS created\n";
 
     // The always true condition. End of the first block
     Twine *var4 = new Twine("condition");
     FCmpInst *condition =
         new FCmpInst(*basicBlock, FCmpInst::FCMP_TRUE, LHS, RHS, *var4);
-    (*logFile) << "bcf: Always true condition created\n";
+    // (*logFile) << "bcf: Always true condition created\n";
 
     // Jump to the original basic block if the condition is true or
     // to the altered block if false.
     BranchInst::Create(originalBB, alteredBB, (Value *)condition, basicBlock);
-    (*logFile) << "bcf: Terminator instruction in first basic block: ok\n";
+    // (*logFile) << "bcf: Terminator instruction in first basic block: ok\n";
 
     // The altered block loop back on the original one.
     BranchInst::Create(originalBB, alteredBB);
-    (*logFile) << "bcf: Terminator instruction in altered block: ok\n";
-
+    // (*logFile) << "bcf: Terminator instruction in altered block: ok\n";
+    
     // The end of the originalBB is modified to give the impression that
     // sometimes it continues in the loop, and sometimes it return the desired
     // value (of course it's always true, so it always use the original
@@ -349,8 +353,8 @@ struct BogusControlFlow : public FunctionPass {
     // Split at this point (we only want the terminator in the second part)
     Twine *var5 = new Twine("originalBBpart2");
     BasicBlock *originalBBpart2 = originalBB->splitBasicBlock(--i, *var5);
-    (*logFile) << "bcf: Terminator part of the original basic block"
-                           << " is isolated\n";
+    // (*logFile) << "bcf: Terminator part of the original basic block"
+                          //  << " is isolated\n";
     // the first part go either on the return statement or on the begining
     // of the altered block.. So we erase the terminator created when splitting.
     originalBB->getTerminator()->eraseFromParent();
@@ -360,8 +364,8 @@ struct BogusControlFlow : public FunctionPass {
         new FCmpInst(*originalBB, CmpInst::FCMP_TRUE, LHS, RHS, *var6);
     BranchInst::Create(originalBBpart2, alteredBB, (Value *)condition2,
                        originalBB);
-    (*logFile) << "bcf: Terminator original basic block: ok\n";
-    (*logFile) << "bcf: End of addBogusFlow().\n";
+    // (*logFile) << "bcf: Terminator original basic block: ok\n";
+    // (*logFile) << "bcf: End of addBogusFlow().\n";
 
   } // end of addBogusFlow()
 
@@ -380,6 +384,7 @@ struct BogusControlFlow : public FunctionPass {
     // Useful to remap the informations concerning instructions.
     ValueToValueMapTy VMap;
     BasicBlock *alteredBB = llvm::CloneBasicBlock(basicBlock, VMap, Name, F);
+    
     DEBUG_WITH_TYPE("gen", errs() << "bcf: Original basic block cloned\n");
     // Remap operands.
     BasicBlock::iterator ji = basicBlock->begin();

@@ -7,4 +7,5 @@ add_llvm_library( LLVMAntiHack
     CryptoUtils.cpp
     Utils.cpp
     BogusControlFlow.cpp
+    Substitution.cpp
 )
