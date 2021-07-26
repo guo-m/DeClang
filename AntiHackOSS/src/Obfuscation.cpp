@@ -68,8 +68,8 @@ namespace {
     functionPasses.push_back(fp);
 
 
-    // fp = static_cast<FunctionPass*>(createSubstitution(configJson, logFile, homeDir));
-    // functionPasses.push_back(fp);
+    fp = static_cast<FunctionPass*>(createSubstitution(configJson, logFile, homeDir));
+    functionPasses.push_back(fp);
 
     fp = static_cast<FunctionPass*>(createBogus(configJson, logFile, homeDir));
     functionPasses.push_back(fp);

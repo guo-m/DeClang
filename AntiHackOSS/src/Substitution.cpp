@@ -44,10 +44,8 @@ STATISTIC(Or, "Or substitued");
 STATISTIC(Xor, "Xor substitued");
 
 namespace {
-
 struct Substitution : public FunctionPass {
-  static char ID; // Pass identification, replacement for typeid
-
+  static char ID; // Pass identification
   llvm::json::Value* configJson;
   int SubTimes;
   std::string homeDir;
@@ -63,6 +61,7 @@ struct Substitution : public FunctionPass {
   void (Substitution::*funcXor[NUMBER_XOR_SUBST])(BinaryOperator *bo);
 
   Substitution() : FunctionPass(ID) {}
+
 
   Substitution(llvm::json::Value* configJson, llvm::raw_fd_ostream *logFile) : FunctionPass(ID), configJson(0) 
   { 
@@ -86,10 +85,9 @@ struct Substitution : public FunctionPass {
 
     funcXor[0] = &Substitution::xorSubstitution;
     funcXor[1] = &Substitution::xorSubstitutionRand;
-
   }
 
-  bool runOnFunction(Function &F);
+  virtual bool runOnFunction(Function &F);
   bool substitute(Function *f, std::string seed);
 
   void addNeg(BinaryOperator *bo);
@@ -109,13 +107,13 @@ struct Substitution : public FunctionPass {
 
   void xorSubstitution(BinaryOperator *bo);
   void xorSubstitutionRand(BinaryOperator *bo);
-};
+};// end of struct Substitution : public FunctionPass
 } // namespace
 
 char Substitution::ID = 0;
-static RegisterPass<Substitution> X("substitution", "operators substitution");
-Pass *createSubstitution(llvm::json::Value* configJson, llvm::raw_fd_ostream *logFile, std::string homeDir)
-{
+static RegisterPass<Substitution> X("Substitution",
+                                        "inserting sub Test control flow");
+Pass *llvm::createSubstitution(llvm::json::Value* configJson, llvm::raw_fd_ostream *logFile, std::string homeDir) {
   return new Substitution(configJson, logFile);
 }
 
@@ -153,8 +151,9 @@ bool Substitution::runOnFunction(Function &F) {
       std::string seed = obj.getAsObject()->getString("seed")->str();
       if (reFuncName.match(F.getName()) && subedFuncs.find(F.getName().str()) == subedFuncs.end() ) {
         subedFuncs.insert(F.getName().str());
-        (*logFile) << "[Frontend]: Flattening func " << F.getName() << "\n";
+        (*logFile) << "[Frontend]: Substitution func " << F.getName() << "\n";
         substitute(&F, seed);
+        (*logFile) << "[Frontend]: Substitution func successed!! " << F.getName() << "\n";
         return true;
       }
     }
